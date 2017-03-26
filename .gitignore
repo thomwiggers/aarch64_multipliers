@@ -1,0 +1,8 @@
+.ropeproject/
+__pycache__/
+*.pyc
+djb-*
+measuremult
+test
+*.o
+*.s

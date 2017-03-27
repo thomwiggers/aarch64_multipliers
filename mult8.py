@@ -48,6 +48,10 @@ def mult8(f0, f1, f2, f3, f4, f5, f6, f7,
 
     # Hbar = A_h * B_h + (l_k, l_n-2)
     Hbar = [Register(f'hbar{i}') for i in range(7)]
+    Hbar[3].pointer, Hbar[3].offset = h11.pointer, h11.offset
+    Hbar[4].pointer, Hbar[4].offset = h12.pointer, h12.offset
+    Hbar[5].pointer, Hbar[5].offset = h13.pointer, h13.offset
+    Hbar[6].pointer, Hbar[6].offset = h14.pointer, h14.offset
     mult4(f4, f5, f6, f7,
           g4, g5, g6, g7,
           *Hbar,
@@ -57,10 +61,6 @@ def mult8(f0, f1, f2, f3, f4, f5, f6, f7,
     # Compute M = (F_l + F_h) * (G_l * G_h)
 
     M = [Register(f'M{i}') for i in range(7)]
-    M3.pointer, M3.offset = h3.pointer, h3.offset
-    M4.pointer, M4.offset = h4.pointer, h4.offset
-    M5.pointer, M5.offset = h5.pointer, h5.offset
-    M6.pointer, M6.offset = h6.pointer, h6.offset
     mult4(Fm0, Fm1, Fm2, Fm3,
           Gm0, Gm1, Gm2, Gm3,
           *M, keep=[*M])
@@ -73,26 +73,33 @@ def mult8(f0, f1, f2, f3, f4, f5, f6, f7,
     U5 = Register('U5', pointer=h9.pointer, offset=h9.offset)
     U6 = Register('U6', pointer=h10.pointer, offset=h10.offset)
 
-    U0.xor(l0, Hbar[0])
-    U1.xor(l1, Hbar[1])
-    U0.xor(U0, M[0])
-    U1.xor(U1, M[1])
+    U0.xor(l0, Hbar[0], [l0])
+    U1.xor(l1, Hbar[1], [l1])
+    U0.xor(U0, M[0], [M[0]])
+    U1.xor(U1, M[1], [M[1]])
     U0.store()
-    U2.xor(l2, Hbar[2])
-    U3.xor(l3, Hbar[3])
-    U2.xor(U2, M[2])
-    U3.xor(U3, M[3])
+    unload(U0)
+    U2.xor(l2, Hbar[2], [l2])
+    U3.xor(l3, Hbar[3], [Hbar[3], l3])
+    U1.store()
+    unload(U1)
+    U2.xor(U2, M[2], [M[2]])
+    U3.xor(U3, M[3], [M[3]])
     U2.store()
-    U4.xor(l4, Hbar[4])
+    unload(U2)
+    U4.xor(Hbar[0], Hbar[4], [Hbar[0], Hbar[4]])
     U3.store()
-    U5.xor(l5, Hbar[5])
-    U6.xor(l6, Hbar[6])
-    U4.xor(U4, M[4])
-    U5.xor(U5, M[5])
+    unload(U3)
+    U5.xor(Hbar[1], Hbar[5], [Hbar[1], Hbar[5]])
+    U6.xor(Hbar[2], Hbar[6], [Hbar[6], Hbar[2]])
+    U4.xor(U4, M[4], [M[4]])
+    U5.xor(U5, M[5], [M[5]])
     U4.store()
-    U6.xor(U6, M[6])
+    unload(U4)
+    U6.xor(U6, M[6], [M[6]])
     U5.store()
     U6.store()
+    unload(U5, U6)
 
 if __name__ == '__main__':
     start_file()
@@ -137,8 +144,22 @@ if __name__ == '__main__':
     start_function('mult8', [h_pointer, f_pointer, g_pointer],
                    [f0, f1, f2, f3, f4, f5, f6, f7,
                     g0, g1, g2, g3, g4, g5, g6, g7])
+    sp = Register.get('sp')
+    vector_stack_space_needed = 8
+    sp.subi(sp, vector_stack_space_needed * 16)
+    q = [Register.get(f'q{i}') for i in range(8, 16)]
+    for i in range(0, vector_stack_space_needed):
+        q[i].pointer = sp
+        q[i].offset = i * 16
+        q[i].store()
+        q[i].unload()
+
     mult8(f0, f1, f2, f3, f4, f5, f6, f7,
-          g0, g1, g2, g3, f4, f5, f6, f7,
+          g0, g1, g2, g3, g4, g5, g6, g7,
           h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14)
+
+    for i in range(vector_stack_space_needed):
+        q[i].load()
+    sp.addi(sp, vector_stack_space_needed * 16)
     Register.debug()
     end_function()

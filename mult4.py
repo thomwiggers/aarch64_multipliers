@@ -35,8 +35,8 @@ def mult4(f0, f1, f2, f3,
 
     def do_add_in(register, name):
         if name in add_in:
-            register.xor(register, add_in['name'])
-            add_in['name'].unload()
+            register.xor(register, add_in[name])
+            add_in[name].unload()
 
     def unload(*registers):
         reg_unload(*[register for register in registers

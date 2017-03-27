@@ -55,8 +55,8 @@ void karatmult8(bit* r, const bit* f, const bit* g) {
     // U_0 .. U_{k-1} = l_0, ..., l_{k-1}
     for (int i = 0; i < k; i++)
         u[i] = l[i];
-    // U_k .. U_{n-1} = (h_0, ..., h_{k-1})
-    for (int i = 0; i < k; i++)
+    // U_k .. U_{n-1} = (h_0, ..., h_{k-2})
+    for (int i = 0; i < k-1; i++)
         u[k+i] = hbar[i]; 
     // U += Hbar
     for (int i = 0; i < n-1; i++)

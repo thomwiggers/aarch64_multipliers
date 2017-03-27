@@ -43,4 +43,12 @@ int main(int argc, char** argv) {
         karatmult8(x2, y, z);
         assert(check(x1, x2, 15));
     }
+
+    puts("mult8");
+    for (int i = 0; i < 1000; i++) {
+        randomize();
+        dmult8(x1, y, z);
+        mult8(x2, y, z);
+        assert(check(x1, x2, 15));
+    }
 }

@@ -13,6 +13,9 @@ def mult4(f0, f1, f2, f3,
           keep=None):
     keep = keep or []
     add_in = add_in or dict()
+    print(f"// == Mult4: [{f0}, {f1}, {f2}, {f3}] * [{g0}, {g1}, {g2}, {g3}]")
+    print(f"//Result: [{h0}, {h1}, {h2}, {h3}, {h4}, {h5}, {h6}]")
+    Register.debug()
 
     # Sanity checks:
     for h in (h0, h1, h2, h3, h4, h5, h6):
@@ -34,7 +37,7 @@ def mult4(f0, f1, f2, f3,
         return do_op(reg_do_and, *args, **kwargs)
 
     def do_add_in(register, name):
-        if name in add_in:
+        if add_in.get(name):
             register.xor(register, add_in[name])
             add_in[name].unload()
 
@@ -52,6 +55,7 @@ def mult4(f0, f1, f2, f3,
     f0.load()
     t4 = do_and('t4', f3, g2)
     f1.load()
+    do_add_in(t1, 'h6')
     t5 = do_and('t5', f0, g3)
     f2.load()
     t6 = do_and('t6', f1, g3)
@@ -65,6 +69,7 @@ def mult4(f0, f1, f2, f3,
     t25 = do_xor('t25', t7, t4, [t4, t7])
     del t4, t7
     t9 = do_and('t9', f2, g0)
+    do_add_in(t25, 'h5')
     h5.rename(t25)
     if h5.pointer:
         h5.store()
@@ -78,8 +83,8 @@ def mult4(f0, f1, f2, f3,
     t12 = do_and('t12', f1, g2, [g2])
     del g2
     t13 = do_and('t13', f1, g1)
-    t14 = do_and('t14', f1, g0, [f1])
     t20 = do_xor('t20', t12, t10, [t10, t12])
+    t14 = do_and('t14', f1, g0, [f1])
     del t10, t12, f1
     t16 = do_and('t16', f0, g0, [g0])
     del g0
@@ -123,11 +128,14 @@ def mult4(f0, f1, f2, f3,
         h1.store()
         unload(h1)
     del t17
+    do_add_in(t24, 'h4')
     h4.rename(t24)
     if h4.pointer:
         h4.store()
         unload(h4)
     del t24
+
+    print("//  ===== end mult4 ====")
 
 
 if __name__ == '__main__':

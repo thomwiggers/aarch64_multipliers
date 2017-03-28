@@ -1,16 +1,73 @@
 from library import (start_file, Register, start_function, end_function,
-                     do_xor, unload)
+                     do_xor as reg_do_xor, unload as reg_unload)
 
 from mult4 import mult4
 
 
 def mult8(f0, f1, f2, f3, f4, f5, f6, f7,
           g0, g1, g2, g3, g4, g5, g6, g7,
-          h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14):
-    l0 = Register('l0', pointer=h0.pointer, offset=h0.offset)
-    l1 = Register('l1', pointer=h1.pointer, offset=h1.offset)
-    l2 = Register('l2', pointer=h2.pointer, offset=h2.offset)
-    l3 = Register('l3', pointer=h3.pointer, offset=h3.offset)
+          h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14,
+          keep=None,
+          add_in=None):
+
+    print("//===============================================================")
+    print("//                        Mult8                                  ")
+    print("//===============================================================")
+
+    keep = keep or []
+    add_in = add_in or dict()
+
+    # Sanity checks:
+    for h in (h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14):
+        if h.pointer is None and h not in keep:
+            raise ValueError(f"Can't throw away result {h}!")
+
+    def do_op(op, name, i1, i2, drop=None):
+        if drop is not None:
+            if i1 in drop and i1 in keep:
+                drop.remove(i1)
+            if i2 in drop and i2 in keep:
+                drop.remove(i2)
+        return op(name, i1, i2, drop)
+
+    def do_xor(*args, **kwargs):
+        return do_op(reg_do_xor, *args, **kwargs)
+
+    def do_add_in(register, name):
+        if add_in.get(name):
+            register.xor(register, add_in[name])
+            add_in[name].unload()
+
+    def try_load_add_for(name):
+        if add_in.get(name):
+            add_in[name].load()
+
+    def unload(*registers):
+        reg_unload(*[register for register in registers
+                     if register not in keep])
+
+
+    def maybe_store(register):
+        if register.pointer:
+            register.store()
+            unload(register)
+
+    if add_in.get('h0'):
+        l0 = Register('l0')
+    else:
+        l0 = Register('l0', pointer=h0.pointer, offset=h0.offset)
+    if add_in.get('h1'):
+        l1 = Register('l1')
+    else:
+        l1 = Register('l1', pointer=h1.pointer, offset=h1.offset)
+    if add_in.get('h2'):
+        l2 = Register('l2')
+    else:
+        l2 = Register('l2', pointer=h2.pointer, offset=h2.offset)
+    if add_in.get('h3'):
+        l3 = Register('l3')
+    else:
+        l3 = Register('l3', pointer=h3.pointer, offset=h3.offset)
     l4 = Register('l4')
     l5 = Register('l5')
     l6 = Register('l6')
@@ -19,7 +76,30 @@ def mult8(f0, f1, f2, f3, f4, f5, f6, f7,
           l0, l1, l2, l3, l4, l5, l6,
           keep=[f0, f1, f2, f3, f4,
                 g0, g1, g2, g3, g4,
-                l0, l1, l2, l3, l4, l5, l6])
+                l0, l1, l2, l3, l4, l5, l6, *keep])
+    if add_in.get('h0'):
+        add_in['h0'].load()
+    if add_in.get('h1'):
+        add_in['h1'].load()
+    if add_in.get('h0'):
+        h0.xor(l0, add_in['h0'], [add_in['h0']])
+    if add_in.get('h2'):
+        add_in['h2'].load()
+    if add_in.get('h1'):
+        h1.xor(l1, add_in['h1'], [add_in['h1']])
+    if add_in.get('h3'):
+        add_in['h3'].load()
+    if add_in.get('h0'):
+        maybe_store(h0)
+    if add_in.get('h2'):
+        h2.xor(l2, add_in['h2'], [add_in['h2']])
+    if add_in.get('h1'):
+        maybe_store(h1)
+    if add_in.get('h3'):
+        h3.xor(l3, add_in['h3'], [add_in['h3']])
+    if add_in.get('h2'):
+        maybe_store(h2)
+
     f4.load()
     f5.load()
     # Fm = F_l + F_h
@@ -42,6 +122,8 @@ def mult8(f0, f1, f2, f3, f4, f5, f6, f7,
     del g1
     g7.load()
     Gm2 = do_xor('Gm2', g2, g6, [g2])
+    if add_in.get('h3'):
+        maybe_store(h3)
     del g2
     Gm3 = do_xor('Gm3', g3, g7, [g3])
     del g3
@@ -65,41 +147,56 @@ def mult8(f0, f1, f2, f3, f4, f5, f6, f7,
           Gm0, Gm1, Gm2, Gm3,
           *M, keep=[*M])
 
-    U0 = Register('U0', pointer=h4.pointer, offset=h4.offset)
-    U1 = Register('U1', pointer=h5.pointer, offset=h5.offset)
-    U2 = Register('U2', pointer=h6.pointer, offset=h6.offset)
-    U3 = Register('U3', pointer=h7.pointer, offset=h7.offset)
-    U4 = Register('U4', pointer=h8.pointer, offset=h8.offset)
-    U5 = Register('U5', pointer=h9.pointer, offset=h9.offset)
-    U6 = Register('U6', pointer=h10.pointer, offset=h10.offset)
+    U0 = Register('U0')
+    U1 = Register('U1')
+    U2 = Register('U2')
+    U3 = Register('U3')
+    U4 = Register('U4')
+    U5 = Register('U5')
+    U6 = Register('U6')
 
     U0.xor(l0, Hbar[0], [l0])
+    try_load_add_for('h4')
     U1.xor(l1, Hbar[1], [l1])
-    U0.xor(U0, M[0], [M[0]])
-    U1.xor(U1, M[1], [M[1]])
-    U0.store()
-    unload(U0)
+    try_load_add_for('h5')
+    h4.xor(U0, M[0], [M[0], U0])
+    h5.xor(U1, M[1], [M[1], U1])
+    del U0, U1
+    do_add_in(h4, 'h4')
+    try_load_add_for('h6')
     U2.xor(l2, Hbar[2], [l2])
-    U3.xor(l3, Hbar[3], [Hbar[3], l3])
-    U1.store()
-    unload(U1)
-    U2.xor(U2, M[2], [M[2]])
-    U3.xor(U3, M[3], [M[3]])
-    U2.store()
-    unload(U2)
-    U4.xor(Hbar[0], Hbar[4], [Hbar[0], Hbar[4]])
-    U3.store()
-    unload(U3)
-    U5.xor(Hbar[1], Hbar[5], [Hbar[1], Hbar[5]])
-    U6.xor(Hbar[2], Hbar[6], [Hbar[6], Hbar[2]])
+    maybe_store(h4)
+    do_add_in(h5, 'h5')
+    U3.xor(l3, Hbar[3], [l3])
+    maybe_store(h5)
+    h6.xor(U2, M[2], [M[2], U2])
+    try_load_add_for('h7')
+    h7.xor(U3, M[3], [M[3], U3])
+    do_add_in(h6, 'h6')
+    do_add_in(h7, 'h7')
+    maybe_store(h6)
+    U4.xor(Hbar[0], Hbar[4], [Hbar[0]])
+    maybe_store(h7)
+    U5.xor(Hbar[1], Hbar[5], [Hbar[1]])
+    U6.xor(Hbar[2], Hbar[6], [Hbar[2]])
     U4.xor(U4, M[4], [M[4]])
-    U5.xor(U5, M[5], [M[5]])
-    U4.store()
-    unload(U4)
-    U6.xor(U6, M[6], [M[6]])
-    U5.store()
-    U6.store()
-    unload(U5, U6)
+    h9.xor(U5, M[5], [M[5], U5])
+    h8.rename(U4)
+    maybe_store(h8)
+    h10.xor(U6, M[6], [M[6], U6])
+    maybe_store(h9)
+    maybe_store(h10)
+
+    h11.rename(Hbar[3])
+    h12.rename(Hbar[4])
+    h13.rename(Hbar[5])
+    h14.rename(Hbar[6])
+
+    unload(h11, h12, h13, h14)
+
+    print("//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("//                  END   Mult8                                  ")
+    print("//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
 if __name__ == '__main__':
     start_file()
@@ -157,6 +254,7 @@ if __name__ == '__main__':
     mult8(f0, f1, f2, f3, f4, f5, f6, f7,
           g0, g1, g2, g3, g4, g5, g6, g7,
           h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14)
+    Register.debug()
 
     for i in range(vector_stack_space_needed):
         q[i].load()

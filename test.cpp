@@ -20,7 +20,7 @@ bool check(bit* a, bit* b, size_t depth) {
     bool result = true;
     for (size_t i = 0; i < depth; i++) {
         if (!(a[i] == b[i])) {
-            printf("Different at %d\n", i);
+            printf("Different at %lu\n", i);
             result = false;
         }
     }
@@ -50,5 +50,14 @@ int main(int argc, char** argv) {
         dmult8(x1, y, z);
         mult8(x2, y, z);
         assert(check(x1, x2, 15));
+    }
+
+    puts("mult16");
+    puts("karatmult16");
+    for (int i = 0; i < 1000; i++) {
+        randomize();
+        dmult16(x1, y, z);
+        karatmult16(x2, y, z);
+        assert(check(x1, x2, 31));
     }
 }

@@ -53,6 +53,16 @@ void measure(const char* name, void (*fp)(bit*, const bit*, const bit*)) {
 void testmult() {
     measure("djb mult4", dmult4);
     measure("Thom's mult4", mult4);
+
+    puts("mult8");
+    measure("djb mult8", dmult8);
+    measure("Thom's Karatsuba mult8 in C", karatmult8);
+    measure("Thom's Karatsuba mult8 in asm", mult8);
+
+    puts("mult16");
+    measure("djb mult16", dmult16);
+    measure("Thom's Karatsuba mult16 in C", karatmult16);
+    //measure("Thom's Karatsuba mult16 in asm", mult16);
 }
 
 

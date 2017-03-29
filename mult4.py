@@ -1,4 +1,4 @@
-from library import (
+from aarchimate import (
     start_file, Register, start_function, end_function, do_and as reg_do_and,
     do_xor as reg_do_xor,
     unload as reg_unload)

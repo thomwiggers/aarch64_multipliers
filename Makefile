@@ -3,13 +3,7 @@
 .PHONY: all
 all: test measuremult
 
-mult4.s: mult4.py library.py
-	python $< > $@
-
-mult8.s: mult8.py library.py
-	python $< > $@
-
-mult16.s: mult16.py library.py
+%.s: %.py
 	python $< > $@
 
 %.o: %.s

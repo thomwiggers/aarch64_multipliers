@@ -1,5 +1,5 @@
-from library import (start_file, Register, start_function, end_function,
-                     do_xor as reg_do_xor, unload as reg_unload)
+from aarchimate import (start_file, Register, start_function, end_function,
+                        do_xor as reg_do_xor, unload as reg_unload)
 
 from mult8 import mult8
 

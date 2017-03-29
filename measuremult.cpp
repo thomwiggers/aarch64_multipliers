@@ -62,7 +62,7 @@ void testmult() {
     puts("mult16");
     measure("djb mult16", dmult16);
     measure("Thom's Karatsuba mult16 in C", karatmult16);
-    //measure("Thom's Karatsuba mult16 in asm", mult16);
+    measure("Thom's Karatsuba mult16 in asm", mult16);
 }
 
 

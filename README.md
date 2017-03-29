@@ -9,7 +9,7 @@ These are generated from Python scripts.
 * A test program to validate that they work correctly
 * A benchmarking program to compare speeds
 * Karatsuba implementations in C
-* Implementations of multiplication from [Dan Bernstein's site](djbmult)
+* C Implementations of multiplication from [Dan Bernstein's site](djbmult)
 
 ## Dependencies
 

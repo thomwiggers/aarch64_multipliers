@@ -3,9 +3,18 @@
 This repository contains some highly optimised refined reduced Karatsuba multipliers for binary polynomials.
 These are generated from Python scripts.
 
+## Included
+
+* Python scripts to generate assembly files
+* A test program to validate that they work correctly
+* A benchmarking program to compare speeds
+* Karatsuba implementations in C
+* Implementations of multiplication from [Dan Bernstein's site](djbmult)
+
 ## Dependencies
 
-    * Python 3.6
-    * The python package [Aarchimate]
+* Python 3.6
+* The python package [Aarchimate]
 
 [Aarchimate]: https://github.com/thomwiggers/aarchimate
+[djbmult]: https://binary.cr.yp.to/m.html

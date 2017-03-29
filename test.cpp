@@ -60,4 +60,11 @@ int main(int argc, char** argv) {
         karatmult16(x2, y, z);
         assert(check(x1, x2, 31));
     }
+    puts("mult16");
+    for (int i = 0; i < 1000; i++) {
+        randomize();
+        dmult16(x1, y, z);
+        mult16(x2, y, z);
+        assert(check(x1, x2, 31));
+    }
 }

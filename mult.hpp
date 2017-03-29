@@ -6,6 +6,7 @@
 extern "C" { 
     extern void mult4(bit *,const bit *,const bit *);
     extern void mult8(bit *,const bit *,const bit *);
+    extern void mult16(bit *,const bit *,const bit *);
 }
 
 extern void dmult4(bit *,const bit *,const bit *);

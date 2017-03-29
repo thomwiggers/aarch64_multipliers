@@ -77,6 +77,10 @@ def mult8(f0, f1, f2, f3, f4, f5, f6, f7,
           keep=[f0, f1, f2, f3, f4,
                 g0, g1, g2, g3, g4,
                 l0, l1, l2, l3, l4, l5, l6, *keep])
+    for h, l in [(h0, l0), (h1, l1), (h2, l2), (h3, l3)]:
+        if l in Register.stored():
+            h.mark_stored()
+
     if add_in.get('h0'):
         add_in['h0'].load()
     if add_in.get('h1'):
@@ -123,6 +127,7 @@ def mult8(f0, f1, f2, f3, f4, f5, f6, f7,
     g7.load()
     Gm2 = do_xor('Gm2', g2, g6, [g2])
     if add_in.get('h3'):
+        # Store h3 by delay
         maybe_store(h3)
     del g2
     Gm3 = do_xor('Gm3', g3, g7, [g3])
@@ -155,19 +160,25 @@ def mult8(f0, f1, f2, f3, f4, f5, f6, f7,
     U5 = Register('U5')
     U6 = Register('U6')
 
-    U0.xor(l0, Hbar[0], [l0])
+    def bla(U, l, x, h):
+        if h in keep:
+            U.xor(l, x)
+            h.rename(l)
+        else:
+            U.xor(l, x, [l])
+    bla(U0, l0, Hbar[0], h0)
     try_load_add_for('h4')
-    U1.xor(l1, Hbar[1], [l1])
+    bla(U1, l1, Hbar[1], h1)
     try_load_add_for('h5')
     h4.xor(U0, M[0], [M[0], U0])
     h5.xor(U1, M[1], [M[1], U1])
     del U0, U1
     do_add_in(h4, 'h4')
     try_load_add_for('h6')
-    U2.xor(l2, Hbar[2], [l2])
+    bla(U2, l2, Hbar[2], h2)
     maybe_store(h4)
     do_add_in(h5, 'h5')
-    U3.xor(l3, Hbar[3], [l3])
+    bla(U3, l3, Hbar[3], h3)
     maybe_store(h5)
     h6.xor(U2, M[2], [M[2], U2])
     try_load_add_for('h7')

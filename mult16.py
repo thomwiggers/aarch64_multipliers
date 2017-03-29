@@ -13,7 +13,7 @@ def mult16(f, g, h,
     add_in = add_in or dict()
 
     stack_offset = 0
-    STACK_SIZE = 16 * 16
+    STACK_SIZE = 10 * 16
     sp.subi(sp, STACK_SIZE)
 
     # Sanity checks:
@@ -42,21 +42,23 @@ def mult16(f, g, h,
                      if register not in keep])
 
     l = [Register(f'l16_{i}') for i in range(15)]
+
     for i in range(8):
         l[i].pointer = h[i].pointer
         l[i].offset = h[i].offset
-    for i in range(8, 15):
+    for i in range(12, 15):
         l[i].pointer = sp
         l[i].offset = stack_offset
         stack_offset += 16
     mult8(*(f[:8]), *(g[:8]), *l, keep=[*l[8:12]])
+    Register.debug()
 
     hbar = [Register(f'Hbar16_{i}') for i in range(15)]
-    for i in range(0, 8):
+    for i in range(0, 7):
         hbar[i].pointer, hbar[i].offset = sp, stack_offset
         stack_offset += 16
-    for i in range(8, 15):
-        hbar[i].pointer, hbar[i].offset = h[15+i].pointer, h[15+i].offset
+    for i in range(7, 15):
+        hbar[i].pointer, hbar[i].offset = h[16+i].pointer, h[16+i].offset
 
     print("// mult8 upper part")
     mult8(*f[8:], *g[8:], *hbar,
@@ -65,14 +67,69 @@ def mult16(f, g, h,
 
     Register.debug()
 
-    Fm = [Register(f'Fm{i}') for i in range(8)]
-    Gm = [Register(f'Gm{i}') for i in range(8)]
+    Fm = [Register(f'Fm16_{i}') for i in range(8)]
+
+    Gm = [Register(f'Gm16_{i}') for i in range(8)]
+
+    f[0].load()
+    f[1].load()
+    Fm[0].xor(f[0], f[8], [f[0], f[8]])
+
+    for i in range(1, 8):
+        if i < 7:
+            f[i+1].load()
+            f[i+8+1].load()
+        if i == 7:
+            g[0].load()
+            g[8].load()
+        Fm[i].xor(f[i], f[8+i], [f[i], f[i+8]])
+
     for i in range(8):
-        Fm[i].xor(f[i], f[8+i], [f[i]])
+        if i < 7:
+            g[i+1].load()
+            g[i+8+1].load()
+        Gm[i].xor(g[i], g[8+i], [g[i], g[i+8]])
+
+    m = [Register(f'M16_{i}') for i in range(15)]
+    l[0].load()
+    mult8(*Fm, *Gm, *m,
+          keep=m)
+    Register.debug()
+
+    U = [Register(f'U16_{i}') for i in range(15)]
     for i in range(8):
-        Gm[i].xor(g[i], g[8+i], [g[i]])
+        if i < 7:
+            l[i+1].load()
+        if i == 7:
+            hbar[0].load()
+        U[i].xor(l[i], m[i], [l[i], m[i]])
+    for i in range(8):
+        hbar[i+1].load()
+        h[i+8].xor(U[i], hbar[i], [U[i]])
+        if i >= 1:
+            h[i+8-1].store()
+            unload(h[i+8-1])
+    h[15].store()
+    unload(h[15], hbar[7])
+    for i in range(7):
+        if i < 6:
+            hbar[i+8+1].load()
+        U[8+i].xor(hbar[i], hbar[i+8], [hbar[i], hbar[i+8]])
+    for i in range(7):
+        if i >= 1:
+            h[i+16-1].store()
+            unload(h[i+16-1])
+        h[i+16].xor(U[8+i], m[8+i], [U[8+i], m[8+i]])
+
+    h[22].store()
+    unload(h[22])
+
+    Register.debug()
+
 
     sp.addi(sp, STACK_SIZE)
+    stack_offset -= STACK_SIZE
+    assert stack_offset  == 0, f"Stack offset still {stack_offset} > 0"
 
 
 if __name__ == '__main__':

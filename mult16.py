@@ -8,18 +8,23 @@ def mult16(f, g, h,
            sp,
            keep=None,
            add_in=None):
+    print("// " + "+" * 80)
+    print("// " + "+" + " " * 16 + "mult16")
+    print("// " + "+" * 80)
 
     keep = keep or []
     add_in = add_in or dict()
 
     stack_offset = 0
     STACK_SIZE = 10 * 16
+    if add_in != dict():
+        STACK_SIZE += 16 * 16
     sp.subi(sp, STACK_SIZE)
 
     # Sanity checks:
     for reg in h:
         if reg.pointer is None and reg not in keep:
-            raise ValueError(f"Can't throw away result {h}!")
+            raise ValueError(f"Can't throw away result {reg}!")
 
     def do_op(op, name, i1, i2, drop=None):
         if drop is not None:
@@ -32,10 +37,18 @@ def mult16(f, g, h,
     def do_xor(*args, **kwargs):
         return do_op(reg_do_xor, *args, **kwargs)
 
-    def do_add_in(register, name):
+    def try_load_add_for(name):
         if add_in.get(name):
-            register.xor(register, add_in[name])
-            add_in[name].unload()
+            add_in[name].load()
+
+    def do_add_in(target, register, name, *drop):
+        if add_in.get(name):
+            target.xor(register, add_in[name], [*drop, add_in[name]])
+
+    def maybe_store_added_in(name, register):
+        if add_in.get(name):
+            register.store()
+            register.unload()
 
     def unload(*registers):
         reg_unload(*[register for register in registers
@@ -43,15 +56,43 @@ def mult16(f, g, h,
 
     l = [Register(f'l16_{i}') for i in range(15)]
 
-    for i in range(8):
-        l[i].pointer = h[i].pointer
-        l[i].offset = h[i].offset
-    for i in range(12, 15):
+    keep_these = []
+    T = 8
+    if add_in.get('h0'):
+        for i in range(8):
+            keep_these.append(l[i])
+            l[i].pointer = sp
+            l[i].offset = stack_offset
+            stack_offset += 16
+        for i in range(8, 12):
+            l[i].pointer = sp
+            l[i].offset = stack_offset
+            stack_offset += 16
+    else:
+        for i in range(0, 8):
+            l[i].pointer = h[i].pointer
+            l[i].offset = h[i].offset
+        keep_these = l[8:12]
+        T = 12
+
+    for i in range(T, 15):
         l[i].pointer = sp
         l[i].offset = stack_offset
         stack_offset += 16
-    mult8(*(f[:8]), *(g[:8]), *l, keep=[*l[8:12]])
-    Register.debug()
+    mult8(*(f[:8]), *(g[:8]), *l, keep=keep_these)
+    try_load_add_for('h0')
+    for i in range(8):
+        if (l[i] in Register.stored() and
+                l[i].pointer == h[i].pointer and l[i].offset == h[i].offset):
+            h[i].mark_stored()
+        if f'h{i}' in add_in:
+            if i < 7:
+                try_load_add_for(f'h{i+1}')
+            print(f"// adding in into: {h[i]} = {l[i]} + %s" % add_in[f'h{i}'])
+            do_add_in(h[i], l[i], f'h{i}', l[i])
+            if i > 0:
+                maybe_store_added_in(f'h{i-1}', h[i-1])
+    maybe_store_added_in('h7', h[7])
 
     hbar = [Register(f'Hbar16_{i}') for i in range(15)]
     for i in range(0, 7):
@@ -64,8 +105,9 @@ def mult16(f, g, h,
     mult8(*f[8:], *g[8:], *hbar,
           keep=[f[8], f[9]],
           add_in={f'h{i}': l[8+i] for i in range(7)})
-
-    Register.debug()
+    for i in range(7, 15):
+        if hbar[i] in Register.stored():
+            h[16+i].mark_stored()
 
     Fm = [Register(f'Fm16_{i}') for i in range(8)]
 
@@ -94,7 +136,6 @@ def mult16(f, g, h,
     l[0].load()
     mult8(*Fm, *Gm, *m,
           keep=m)
-    Register.debug()
 
     U = [Register(f'U16_{i}') for i in range(15)]
     for i in range(8):
@@ -110,6 +151,7 @@ def mult16(f, g, h,
             h[i+8-1].store()
             unload(h[i+8-1])
     h[15].store()
+    # unload hbar[7] as it's not dropped by the below code
     unload(h[15], hbar[7])
     for i in range(7):
         if i < 6:
@@ -124,13 +166,15 @@ def mult16(f, g, h,
     h[22].store()
     unload(h[22])
 
-    Register.debug()
 
 
     sp.addi(sp, STACK_SIZE)
     stack_offset -= STACK_SIZE
     assert stack_offset  == 0, f"Stack offset still {stack_offset} > 0"
 
+    print("// " + "*" * 80)
+    print("// " + "*" + " " * 16 + "mult16")
+    print("// " + "*" * 80)
 
 if __name__ == '__main__':
     start_file()
@@ -156,7 +200,6 @@ if __name__ == '__main__':
         q[i].store()
         q[i].unload()
 
-    Register.debug()
     mult16(f, g, h, sp)
 
     for i in range(vector_stack_space_needed):

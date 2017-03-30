@@ -33,10 +33,9 @@ def mult8(f0, f1, f2, f3, f4, f5, f6, f7,
     def do_xor(*args, **kwargs):
         return do_op(reg_do_xor, *args, **kwargs)
 
-    def do_add_in(register, name):
+    def do_add_in(target, register, name):
         if add_in.get(name):
-            register.xor(register, add_in[name])
-            add_in[name].unload()
+            target.xor(register, add_in[name], [add_in[name]])
 
     def try_load_add_for(name):
         if add_in.get(name):
@@ -173,18 +172,18 @@ def mult8(f0, f1, f2, f3, f4, f5, f6, f7,
     h4.xor(U0, M[0], [M[0], U0])
     h5.xor(U1, M[1], [M[1], U1])
     del U0, U1
-    do_add_in(h4, 'h4')
+    do_add_in(h4, h4, 'h4')
     try_load_add_for('h6')
     bla(U2, l2, Hbar[2], h2)
     maybe_store(h4)
-    do_add_in(h5, 'h5')
+    do_add_in(h5, h5, 'h5')
     bla(U3, l3, Hbar[3], h3)
     maybe_store(h5)
     h6.xor(U2, M[2], [M[2], U2])
     try_load_add_for('h7')
     h7.xor(U3, M[3], [M[3], U3])
-    do_add_in(h6, 'h6')
-    do_add_in(h7, 'h7')
+    do_add_in(h6, h6, 'h6')
+    do_add_in(h7, h7, 'h7')
     maybe_store(h6)
     U4.xor(Hbar[0], Hbar[4], [Hbar[0]])
     maybe_store(h7)

@@ -141,7 +141,7 @@ def mult8(f0, f1, f2, f3, f4, f5, f6, f7,
     mult4(f4, f5, f6, f7,
           g4, g5, g6, g7,
           *Hbar,
-          keep=[*Hbar],
+          keep=[*Hbar, *keep],
           add_in={'h0': l4, 'h1': l5, 'h2': l6})
     del l4, l5, l6
     # Compute M = (F_l + F_h) * (G_l * G_h)

@@ -16,8 +16,10 @@ def mult32(f, g, h,
     keep = keep or []
     add_in = add_in or dict()
 
+    assert KOUT == 31
+
     stack_offset = 0
-    STACK_SIZE = 8 * 16
+    STACK_SIZE = 1488//16 * 16
     sp.subi(sp, STACK_SIZE)
 
     # Sanity checks:
@@ -43,22 +45,19 @@ def mult32(f, g, h,
     l = [Register(f'l{N}_{i}') for i in range(KOUT)]
 
     for i in range(K):
-        # WTF? FIXME
         l[i].pointer = h[i].pointer
-        l[i].offset = h[i]
+        l[i].offset = h[i].offset
     for i in range(K, KOUT):
         l[i].pointer = sp
         l[i].offset = stack_offset
         stack_offset += 16
 
-    multK(f[:K], g[:K], h[:KOUT], sp)
+    sp_c = Register('spc', type='x')
+    sp_c.mov(sp)
+    multK(f[:K], g[:K], l[:KOUT], sp_c)
 
     print(f"// first done mult{N}")
 
-    sp.addi(sp, STACK_SIZE)
-    stack_offset -= STACK_SIZE
-    assert stack_offset >= 0, stack_offset
-    return
 
     hbar = [Register(f'Hbar{N}_{i}') for i in range(KOUT)]
     for i in range(K-1):
@@ -68,10 +67,9 @@ def mult32(f, g, h,
         hbar[i].pointer, hbar[i].offset = h[N + i].pointer, h[N+i].offset
 
     print(f"// mult{K} upper part")
-    multK(f[K:], g[K:], hbar, sp,
-          add_in={f'h{i}': l[K+i] for i in range(K-1)})
-
-    Register.debug()
+    multK(f[K:], g[K:], hbar, sp_c,
+          add_in={f'h{i}': l[K+i] for i in range(K-1)}
+          )
 
     Fm = [Register(f'Fm{N}_{i}') for i in range(K)]
     Gm = [Register(f'Gm{N}_{i}') for i in range(K)]
@@ -92,6 +90,7 @@ def mult32(f, g, h,
         Fm[i].xor(f[i], f[K+i], [f[i], f[i+K]])
         if i > 0:
             Fm[i-1].store()
+        if i > 9:
             Fm[i-1].unload()
 
     for i in range(K):
@@ -104,7 +103,8 @@ def mult32(f, g, h,
             Fm[K-1+i].unload()
         else:
             Gm[i-1].store()
-            Gm[i-1].unload()
+            if i > 8:
+                Gm[i-1].unload()
 
     Gm[K-1].store()
 
@@ -112,7 +112,8 @@ def mult32(f, g, h,
     for r in m:
         r.pointer, r.offset = sp, stack_offset
         stack_offset += 16
-    multK(Fm, Gm, m, sp)
+
+    multK(Fm, Gm, m, sp_c, keep=m)
 
     U = [Register(f'U{N}_{i}') for i in range(KOUT)]
     l[0].load()
@@ -151,7 +152,6 @@ def mult32(f, g, h,
     unload(h[OUT - K - 1])
 
     Register.debug()
-
 
     sp.addi(sp, STACK_SIZE)
     stack_offset -= STACK_SIZE

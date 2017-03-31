@@ -18,13 +18,23 @@ void randomize() {
     }
 }
 
-bool check(bit* a, bit* b, size_t depth) {
+bool check(bit* a, bit* b, long depth) {
     bool result = true;
-    for (size_t i = 0; i < depth; i++) {
+    long first_wrong = -1;
+    for (long i = 0; i < depth; i++) {
         if (!(a[i] == b[i])) {
-            printf("Different at %lu\n", i);
+            if (first_wrong == -1) 
+                first_wrong = i;
             result = false;
+        } else {
+            if (first_wrong >= 0) {
+                printf("Different at %ld — %ld\n", first_wrong, i-1);
+                first_wrong = -1;
+            }
         }
+    }
+    if (first_wrong != -1) {
+        printf("Different at %l — %l\n", first_wrong, depth-1);
     }
     return result;
 }

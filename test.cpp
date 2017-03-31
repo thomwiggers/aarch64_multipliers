@@ -6,6 +6,10 @@
 # define assert(check) \
     if (!check) { puts("ERROR"); return 1;}
 
+
+const int tests = 10000;
+
+
 bit x1[262], x2[262], y[131], z[131];
 void randomize() {
     for (int i = 0; i < 262; i++) {
@@ -34,12 +38,11 @@ bool check(bit* a, bit* b, long depth) {
         }
     }
     if (first_wrong != -1) {
-        printf("Different at %l — %l\n", first_wrong, depth-1);
+        printf("Different at %ld — %ld\n", first_wrong, depth-1);
     }
     return result;
 }
 
-const int tests = 100;
 
 int main(int argc, char** argv) {
     puts("mult4");
@@ -103,5 +106,21 @@ int main(int argc, char** argv) {
         dmult32(x1, y, z);
         mult32(x2, y, z);
         assert(check(x1, x2, 63));
+    }
+
+    puts("cmult33");
+    for (int i = 0; i < tests; i++) {
+        randomize();
+        dmult33(x1, y, z);
+        cmult33(x2, y, z);
+        assert(check(x1, x2, 65));
+    }
+
+    puts("mult33");
+    for (int i = 0; i < tests; i++) {
+        randomize();
+        dmult33(x1, y, z);
+        mult33(x2, y, z);
+        assert(check(x1, x2, 65));
     }
 }

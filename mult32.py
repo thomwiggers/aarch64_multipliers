@@ -70,6 +70,9 @@ def mult32(f, g, h,
     multK(f[K:], g[K:], hbar, sp_c,
           add_in={f'h{i}': l[K+i] for i in range(K-1)}
           )
+    for i in range(K-1, KOUT):
+        if hbar[i] in Register.stored():
+            h[N+i].mark_stored()
 
     Fm = [Register(f'Fm{N}_{i}') for i in range(K)]
     Gm = [Register(f'Gm{N}_{i}') for i in range(K)]

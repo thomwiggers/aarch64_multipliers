@@ -11,49 +11,41 @@ OUT = 2*33-1
 def mult33(f, g, h,
            sp):
 
-    mult32(f[:32], g[:32], h[:-2], sp, keep=h[32:])
+    mult32(f[:32], g[:32], h[:-2], sp, keep=h[32:64])
 
     Register.debug()
     f[0].load()
     g[32].load()
-    h[32].load()
-    t = [Register(f'temp{i}') for i in range(32)]
-    for i in range(31):
-        if 32+i+1 < 63:
-            h[32+i+1].load()
-        if i > 0 and 32+i-1 < 63:
-            h[32+i-1].xor(h[32+i-1], t[i-1], [t[i-1]])
-        f[i+1].load()
-        t[i].and_(f[i], g[32], [f[i]])
+    tf = [Register(f'temp_f_{i}') for i in range(32)]
+    tg = [Register(f'temp_g_{i}') for i in range(32)]
 
-        if 0 < i < 20:
-            h[32+i-1].store()
-            unload(h[32+i-1])
-    h[62].xor(h[62], t[30])
+    g[32].load()
     f[32].load()
-    h[63].and_(f[31], g[32])
-    Register.debug()
+    g[0].load()
+    h[64].and_(f[32], g[32])
 
-    g[31].load()
-    h[64].and_(f[32], g[32], [g[32]])
-
-    for i in range(31, -1, -1):
-        if i > 0:
-            g[i-1].load()
-        if i < 31:
-            h[32+i+1].xor(h[32+i+1], t[i+1], [t[i+1]])
-        if i > 0:
-            h[32+i-1].load()
-        t[i].and_(f[32], g[i], [g[i]])
-        if i == 31:
+    for i in range(32):
+        tf[i].and_(g[32], f[i], [f[i]])
+        if i == 0:
             h[64].store()
             unload(h[64])
         else:
-            h[32+i+1].store()
-            unload(h[32+i+1])
+            h[i+32-1].store()
+            unload(h[i+32-1])
+        if i + 32 < 63:
+            h[i+32].load()
+        tg[i].and_(f[32], g[i], [g[i]])
+        if i < 31:
+            f[i+1].load()
+        if i + 32 < 63:
+            h[i+32].xor(h[i+32], tf[i], [tf[i]])
+            g[i+1].load()
+            h[i+32].xor(h[i+32], tg[i], [tg[i]])
+        else:
+            h[i+32].xor(tf[i], tg[i], [tf[i], tg[i]])
 
-    h[32].xor(h[32], t[0], [t[0]])
-    h[32].store()
+    h[63].store()
+    unload(h[63], f[32], g[32])
 
     Register.debug()
 

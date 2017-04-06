@@ -74,6 +74,12 @@ void testmult() {
     measure("djb mult33", dmult33);
     measure("Do the 32-to-33 stuff in C, 32-bit in asm", cmult33);
     measure("Do the 32-to-33, everything asm", mult33);
+
+    puts("mult64");
+    measure("djb mult64", dmult64);
+    measure("Thom's Karatsuba mult64 in C", karatmult64);
+    measure("Thom's Karatsuba mult64 in C with mult32 asm", cmult64);
+    measure("Thom's Karatsuba mult64 in asm", mult64);
 }
 
 

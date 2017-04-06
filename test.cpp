@@ -123,4 +123,26 @@ int main(int argc, char** argv) {
         mult33(x2, y, z);
         assert(check(x1, x2, 65));
     }
+
+    puts("mult64");
+    for (int i = 0; i < tests; i++) {
+        randomize();
+        dmult64(x1, y, z);
+        mult64(x2, y, z);
+        assert(check(x1, x2, 64*2-1));
+    }
+
+    for (int i = 0; i < tests; i++) {
+        randomize();
+        dmult64(x1, y, z);
+        karatmult64(x2, y, z);
+        assert(check(x1, x2, 64*2-1));
+    }
+
+    for (int i = 0; i < tests; i++) {
+        randomize();
+        dmult64(x1, y, z);
+        cmult64(x2, y, z);
+        assert(check(x1, x2, 64*2-1));
+    }
 }

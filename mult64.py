@@ -1,25 +1,22 @@
 from aarchimate import (start_file, Register, start_function, end_function,
                         do_xor as reg_do_xor, unload as reg_unload)
 
-from mult16 import mult16 as multK
+from mult32 import mult32 as multK
 
-N = 32
+N = 64
 OUT = 2 * N - 1
 K = N//2
 KOUT = 2 * K - 1
 
-def mult32(f, g, h,
+
+def mult64(f, g, h,
            sp,
-           keep=None,
-           add_in=None):
+           keep=None):
 
     keep = keep or []
-    add_in = add_in or dict()
-
-    assert KOUT == 31
 
     stack_offset = 0
-    STACK_SIZE = 1488//16 * 16
+    STACK_SIZE = 4032
     sp.subi(sp, STACK_SIZE)
 
     # Sanity checks:
@@ -58,7 +55,6 @@ def mult32(f, g, h,
 
     print(f"// first done mult{N}")
 
-
     hbar = [Register(f'Hbar{N}_{i}') for i in range(KOUT)]
     for i in range(K-1):
         hbar[i].pointer, hbar[i].offset = sp, stack_offset
@@ -67,12 +63,23 @@ def mult32(f, g, h,
         hbar[i].pointer, hbar[i].offset = h[N + i].pointer, h[N+i].offset
 
     print(f"// mult{K} upper part")
-    multK(f[K:], g[K:], hbar, sp_c,
-          add_in={f'h{i}': l[K+i] for i in range(K-1)}
-          )
+    multK(f[K:], g[K:], hbar, sp_c)
     for i in range(K-1, KOUT):
         if hbar[i] in Register.stored():
             h[N+i].mark_stored()
+
+    hbar[0].load()
+    for i in range(0, N - K - 1):
+        l[K+i].load()
+        if i > 0:
+            hbar[i-1].store()
+            unload(hbar[i-1])
+        hbar[i].xor(hbar[i], l[K+i], [l[K+i]])
+        if i < N - K - 2:
+            hbar[i+1].load()
+
+    hbar[N-K-2].store()
+    unload(hbar[N-K-2])
 
     Fm = [Register(f'Fm{N}_{i}') for i in range(K)]
     Gm = [Register(f'Gm{N}_{i}') for i in range(K)]
@@ -93,7 +100,6 @@ def mult32(f, g, h,
         Fm[i].xor(f[i], f[K+i], [f[i], f[i+K]])
         if i > 0:
             Fm[i-1].store()
-        if i > 9:
             Fm[i-1].unload()
 
     for i in range(K):
@@ -106,19 +112,23 @@ def mult32(f, g, h,
             Fm[K-1+i].unload()
         else:
             Gm[i-1].store()
-            if i > 8:
-                Gm[i-1].unload()
+            Gm[i-1].unload()
 
     Gm[K-1].store()
+    Gm[K-1].unload()
 
     m = [Register(f'M{N}_{i}') for i in range(KOUT)]
     for r in m:
         r.pointer, r.offset = sp, stack_offset
         stack_offset += 16
 
-    multK(Fm, Gm, m, sp_c, keep=m)
+    multK(Fm, Gm, m, sp_c)
 
     U = [Register(f'U{N}_{i}') for i in range(KOUT)]
+    for u in U:
+        u.pointer = sp
+        u.offset = stack_offset
+        stack_offset += 16
     l[0].load()
     m[0].load()
     for i in range(K):
@@ -127,23 +137,32 @@ def mult32(f, g, h,
             m[i+1].load()
         else:
             hbar[0].load()
+        if i > K-20:
+            U[i-1].store()
+            unload(U[i-1])
         U[i].xor(l[i], m[i], [l[i], m[i]])
     for i in range(K):
+        U[i].load()
         hbar[i+1].load()
-        h[i+K].xor(U[i], hbar[i], [U[i]])
+        h[i+K].xor(U[i], hbar[i], [hbar[i], U[i]])
         if i >= 1:
             h[i+K-1].store()
             unload(h[i+K-1])
     h[KOUT].store()
-    unload(h[KOUT], hbar[K-1])
+    unload(h[KOUT])
     for i in range(K-1):
+        hbar[i].load()
         if i < K-2:
             hbar[i+K+1].load()
         else:
             m[K].load()
+        if i > K-20:
+            U[K+i-1].store()
+            unload(U[K+i-1])
         U[K+i].xor(hbar[i], hbar[i+K], [hbar[i], hbar[i+K]])
 
     for i in range(K-1):
+        U[K+i].load()
         if i < K-2:
             m[K+i+1].load()
         if i >= 1:
@@ -153,8 +172,6 @@ def mult32(f, g, h,
 
     h[OUT - K - 1].store()
     unload(h[OUT - K - 1])
-    for hr in h:
-        hr.mark_stored()
 
     Register.debug()
 
@@ -188,7 +205,7 @@ if __name__ == '__main__':
         q[i].unload()
 
     Register.debug()
-    mult32(f, g, h, sp)
+    mult64(f, g, h, sp)
 
     for i in range(vector_stack_space_needed):
         q[i].load()

@@ -16,7 +16,7 @@ def mult64(f, g, h,
     keep = keep or []
 
     stack_offset = 0
-    STACK_SIZE = 4032
+    STACK_SIZE = 3536
     sp.subi(sp, STACK_SIZE)
 
     # Sanity checks:
@@ -125,9 +125,12 @@ def mult64(f, g, h,
     multK(Fm, Gm, m, sp_c)
 
     U = [Register(f'U{N}_{i}') for i in range(KOUT)]
-    for u in U:
-        u.pointer = sp
-        u.offset = stack_offset
+    for i in range(K):
+        U[i].pointer = sp
+        U[i].offset = stack_offset
+        if i < K-1:
+            U[i+K].pointer = sp
+            U[i+K].offset = stack_offset
         stack_offset += 16
     l[0].load()
     m[0].load()
@@ -171,7 +174,10 @@ def mult64(f, g, h,
         h[i+N].xor(U[K+i], m[K+i], [U[K+i], m[K+i]])
 
     h[OUT - K - 1].store()
-    unload(h[OUT - K - 1])
+    unload(h[OUT - K - 1], sp_c)
+
+    for hr in h:
+        hr.mark_stored()
 
     Register.debug()
 

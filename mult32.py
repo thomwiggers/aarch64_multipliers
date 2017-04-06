@@ -157,6 +157,7 @@ def mult32(f, g, h,
         hr.mark_stored()
 
     Register.debug()
+    unload(sp_c)
 
     sp.addi(sp, STACK_SIZE)
     stack_offset -= STACK_SIZE
